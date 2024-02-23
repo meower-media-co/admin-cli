@@ -1,0 +1,101 @@
+#/bin/python3
+
+import sys
+from MeowerBot import __version__
+
+if sys.version_info < (3, 12):
+   print("ERROR: This script requires python 3.12 or higher")
+   sys.exit(1)
+
+if __version__.split(".")[0] != "3":
+   print("ERROR: This script requires python MeowerBot.py 3.x.x")
+   sys.exit(1)
+
+
+import os
+from MeowerBot import Bot, cbids
+from MeowerBot.api import MeowerAPI
+import argparse
+
+
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument("type", choices=["whitelist", "blacklist"])
+parser.add_argument("mode", choices=["add", "remove"])
+parser.add_argument("messages",  nargs='+', type=str, help="Messages you want to do somthing with")
+parser.add_argument("--username")
+parser.add_argument("--password")
+parser.add_argument("--api", default="https://api.meower.org/")
+parser.add_argument("--websocket", default="wss://server.meower.org")
+
+args = parser.parse_args()
+
+username = args.username
+password = args.password
+
+if args.type not in ["whitelist", "blacklist"]:
+   print("ERROR: the type must be whitelist or blacklist")
+   sys.exit(1)
+
+if args.mode not in ["add", "remove"]:
+   print("ERROR: the mode must be add or remove")
+   sys.exit(1)
+
+
+
+if (username is None) or (password is None):
+   print("ERROR: --username or --password where not provided")
+   sys.exit(1)
+
+bot = Bot()
+
+@bot.listen(cbids.login)
+async def login(token: str):
+   bot.user = await bot.user.fetch()
+   try:
+      if not ((bot.user.permissions == 1) or (bot.user.permissions & 524288 == 524288)):
+         print("ERROR: Bot doesn't have the required permissions")
+         os._exit(1)
+
+      if args.type == "whitelist" and args.mode == "add":
+         resp = await bot.api.client.post("/admin/server/profanity/whitelist/", json={
+            "items": args.messages
+         })
+         if resp.status_code == 200:
+            print("Added to whitelist")
+         else: print("Failed to add too whitelist: ", resp.status_code)
+
+      elif args.type == "whitelist" and args.mode == "remove":
+         resp = await bot.api.client.post("/admin/server/profanity/whitelist/delete", json={
+            "items": args.messages
+         })
+         if resp.status_code == 200:
+            print("Removed from whitelist")
+         else: print("Failed to remove from whitelist: ", resp.status_code)
+      elif args.type == "blacklist" and args.mode == "add":
+         # only other option is adding to blacklist
+
+         resp = await bot.api.client.post("/admin/server/profanity/blacklist/", json={
+            "items": args.messages
+         })
+         if resp.status_code == 200:
+            print("Added to blacklist")
+         else: print("Failed to add too blacklist: ", resp.status_code)
+      else:
+         resp = await bot.api.client.post("/admin/server/profanity/blacklist/delete", json={
+            "items": args.messages
+         })
+         if resp.status_code == 200:
+            print("Removed from blacklist")
+         else: print("Failed to remove from blacklist: ", resp.status_code)
+
+
+   except Exception as e:
+      print("ERROR: ", f"{e.__class__.__name__} - {e}")
+      os._exit(1)
+
+   os._exit(0)
+
+MeowerAPI.base_uri = args.api
+bot.run(username, password, server=args.websocket)
