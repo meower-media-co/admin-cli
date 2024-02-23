@@ -1,7 +1,7 @@
 # Meower Admin CLI
 ## Description
 
-This Python script serves as an Admin CLI (Command Line Interface) for managing profanity filters in MeowerBot. It allows users to add or remove messages to/from either a whitelist or a blacklist.
+This Python script serves as an Admin CLI (Command Line Interface) for managing profanity filters on Meower. It allows users to add or remove messages to/from either a whitelist or a blacklist.
 ## Prerequisites
 ```text
 Python 3.12 or higher
