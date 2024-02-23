@@ -1,4 +1,4 @@
-#/bin/python3
+#!/usr/bin/python
 
 import sys
 from MeowerBot import __version__
