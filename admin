@@ -18,12 +18,18 @@ from MeowerBot.api import MeowerAPI
 import argparse
 
 
+def maybe_str_or_int(arg):
+   try:
+      return int(arg)  # try convert to int
+   except ValueError:
+     pass
+   return arg
 
 parser = argparse.ArgumentParser()
 
 parser.add_argument("type", choices=["whitelist", "blacklist"])
-parser.add_argument("mode", choices=["add", "remove"])
-parser.add_argument("messages",  nargs='+', type=str, help="Messages you want to do somthing with")
+parser.add_argument("mode", choices=["add", "remove", "get"])
+parser.add_argument("messages",  nargs='+', type=maybe_str_or_int, help="Messages you want to do somthing with")
 parser.add_argument("--username")
 parser.add_argument("--password")
 parser.add_argument("--api", default="https://api.meower.org/")
@@ -38,7 +44,7 @@ if args.type not in ["whitelist", "blacklist"]:
    print("ERROR: the type must be whitelist or blacklist")
    sys.exit(1)
 
-if args.mode not in ["add", "remove"]:
+if args.mode not in ["add", "remove", "get"]:
    print("ERROR: the mode must be add or remove")
    sys.exit(1)
 
@@ -82,6 +88,29 @@ async def login(token: str):
          if resp.status_code == 200:
             print("Added to blacklist")
          else: print("Failed to add too blacklist: ", resp.status_code)
+      elif args.mode == "get":
+         if len(args.messages) <= 0:
+            page = 1
+
+         try:
+            page = int(args.messages[0])
+         except:
+            print("ERROR: GET Operation requires a number as the first message")
+            os._exit(1)
+
+         resp = await bot.api.client.get(f"/admin/server/profanity/{args.type}", params={"page": page})
+         if resp.status_code != 200:
+            print("Failed to get the list of items: ", resp.status_code)
+            os._exit()
+
+         data =  resp.json()
+         print(data)
+         print("Page Number:", data["page#"])
+         print("Page Count: ", data["pages"])
+         print("Words:")
+         for word in data[args.type]:
+            print("  ", word)
+
       else:
          resp = await bot.api.client.post("/admin/server/profanity/blacklist/delete", json={
             "items": args.messages
